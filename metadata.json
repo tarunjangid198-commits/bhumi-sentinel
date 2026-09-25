@@ -1,0 +1,6 @@
+{
+  "name": "BHUMI-SENTINEL",
+  "description": "AI-Powered Land Acquisition Risk & Decision Intelligence Platform - From tracking land acquisition to predicting where it gets stuck.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
