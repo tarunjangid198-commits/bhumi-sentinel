@@ -16,13 +16,13 @@ import {
   Check,
   User,
   ArrowRight,
-  QrCode,
+  Globe,
 } from 'lucide-react';
 import { AcceptFileModal } from '../components/modals/AcceptFileModal';
 import { ReturnFileModal } from '../components/modals/ReturnFileModal';
 import { ForwardFileModal } from '../components/modals/ForwardFileModal';
 import { ResubmitFileModal } from '../components/modals/ResubmitFileModal';
-import { MobileScannerModal } from '../components/common/MobileScannerModal';
+import { GovtInteroperabilityHub } from '../components/admin/GovtInteroperabilityHub';
 import { DigitalFile } from '../types';
 
 export const OfficerPortalPage: React.FC = () => {
@@ -34,62 +34,74 @@ export const OfficerPortalPage: React.FC = () => {
   const [selectedFileForReturn, setSelectedFileForReturn] = useState<DigitalFile | null>(null);
   const [selectedFileForForward, setSelectedFileForForward] = useState<DigitalFile | null>(null);
   const [selectedFileForResubmit, setSelectedFileForResubmit] = useState<DigitalFile | null>(null);
-  const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
 
   // Survey evidence form state
   const [surveyEvidenceText, setSurveyEvidenceText] = useState('DGPS coordinates verified. Pegs 1-4 anchored. Naksha Trace match certified.');
   const [completingSurveyParcelId, setCompletingSurveyParcelId] = useState<string | null>(null);
 
-  // Filter files relevant to current user role
-  const roleName = currentUser.role.toLowerCase().replace(' officer', '').trim();
+  // Filter files relevant to current user role with defensive null-safety
+  const roleName = (currentUser?.role || '').toLowerCase().replace(' officer', '').trim();
+  const safeFiles = Array.isArray(files) ? files : [];
+  const safeParcels = Array.isArray(parcels) ? parcels : [];
 
   // 1. INCOMING FILES: status == 'SENT' or 'RECEIVED' directed to this officer
-  const incomingFiles = files.filter(
+  const incomingFiles = safeFiles.filter(
     (f) =>
-      (f.status === 'SENT' || f.status === 'RECEIVED') &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
+      Boolean(f && (f.status === 'SENT' || f.status === 'RECEIVED')) &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
   );
 
   // 2. ACTIVE FILES: status == 'UNDER_REVIEW' or 'ACCEPTED'
-  const activeFiles = files.filter(
+  const activeFiles = safeFiles.filter(
     (f) =>
-      (f.status === 'UNDER_REVIEW' || f.status === 'ACCEPTED') &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
+      Boolean(f && (f.status === 'UNDER_REVIEW' || f.status === 'ACCEPTED')) &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
   );
 
   // 3. RETURNED / ACTION REQUIRED: status == 'RETURNED'
-  const returnedFiles = files.filter(
+  const returnedFiles = safeFiles.filter(
     (f) =>
-      f.status === 'RETURNED' &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
+      Boolean(f && f.status === 'RETURNED') &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
   );
 
   // 4. COMPLETED FILES
-  const completedFiles = files.filter(
+  const completedFiles = safeFiles.filter(
     (f) =>
-      f.status === 'COMPLETED' &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
+      Boolean(f && f.status === 'COMPLETED') &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
   );
 
   // 5. OVERDUE FILES
-  const overdueFiles = files.filter(
-    (f) =>
-      new Date(f.dueDate).getTime() < Date.now() &&
-      f.status !== 'COMPLETED' &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
-  );
+  const overdueFiles = safeFiles.filter((f) => {
+    if (!f || f.status === 'COMPLETED') return false;
+    const dueTime = f.dueDate ? new Date(f.dueDate).getTime() : NaN;
+    const isPastDue = !isNaN(dueTime) && dueTime < Date.now();
+    return (
+      isPastDue &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
+    );
+  });
 
   // 6. HIGH RISK FILES
-  const highRiskFiles = files.filter(
+  const highRiskFiles = safeFiles.filter(
     (f) =>
-      f.risk === 'HIGH' &&
-      (currentUser.role === 'National Admin' || f.currentOfficer.toLowerCase().includes(roleName))
+      Boolean(f && f.risk === 'HIGH') &&
+      (currentUser?.role === 'National Admin' ||
+        (typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(roleName)))
   );
 
   // Survey Officer Specific parcels
-  const isSurveyOfficer = currentUser.role === 'Survey Officer';
-  const assignedSurveys = parcels.filter(
-    (p) => p.currentStage === 'Survey' || p.currentOfficer.toLowerCase().includes('survey')
+  const isSurveyOfficer = currentUser?.role === 'Survey Officer';
+  const assignedSurveys = safeParcels.filter(
+    (p) =>
+      Boolean(p && p.currentStage === 'Survey') ||
+      (typeof p?.currentOfficer === 'string' && p.currentOfficer.toLowerCase().includes('survey'))
   );
 
   const handleSurveyComplete = async (parcelId: string) => {
@@ -140,16 +152,21 @@ export const OfficerPortalPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick action buttons for demo judges & scanner */}
+        {/* Quick action buttons for demo judges & gateway */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowScannerModal(true)}
-            className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs"
-            title="Scan physical deed QR, parcel marker, or open on Expo Go"
-          >
-            <QrCode className="w-4 h-4 text-emerald-600" />
-            <span>Scan Deed / Mobile QR</span>
-          </button>
+          {currentUser.role === 'National Admin' && (
+            <button
+              onClick={() => {
+                const el = document.getElementById('govt-interoperability-hub');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-3.5 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-900 border border-blue-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-2xs cursor-pointer"
+              title="Central Ministries & State Revenue Portals Connect"
+            >
+              <Globe className="w-4 h-4 text-blue-600" />
+              <span>Govt Web & App Gateway</span>
+            </button>
+          )}
 
           {currentUser.role === 'Finance Officer' && (
             <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 flex items-center gap-2">
@@ -161,6 +178,13 @@ export const OfficerPortalPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* National Admin Government Interoperability Gateway */}
+      {currentUser.role === 'National Admin' && (
+        <div id="govt-interoperability-hub">
+          <GovtInteroperabilityHub />
+        </div>
+      )}
 
       {/* KPI Counters */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -632,13 +656,6 @@ export const OfficerPortalPage: React.FC = () => {
           onSuccess={() => setActiveTab('incoming')}
         />
       )}
-
-      {/* Cadastral & Mobile QR Scanner Modal */}
-      <MobileScannerModal
-        isOpen={showScannerModal}
-        onClose={() => setShowScannerModal(false)}
-        defaultTab="camera"
-      />
     </div>
   );
 };

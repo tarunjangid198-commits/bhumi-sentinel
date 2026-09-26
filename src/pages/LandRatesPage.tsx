@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Coins,
   Search,
@@ -10,6 +11,7 @@ import {
   TrendingUp,
   MapPin,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Scale,
   RefreshCw,
@@ -25,6 +27,7 @@ import {
 import { LandCategory } from '../types';
 
 export const LandRatesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -154,6 +157,31 @@ export const LandRatesPage: React.FC = () => {
 
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Quick Navigation Breadcrumb & Back Bar */}
+      <div className="flex items-center justify-between bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-2xs">
+        <div className="flex items-center space-x-2 text-xs">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-lg font-bold border border-slate-200 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Command Center</span>
+          </button>
+          <span className="text-slate-300">/</span>
+          <span className="font-bold text-slate-800">District DLC Land Rates</span>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => navigate('/map')}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">View on Map →</span>
+          </button>
+        </div>
+      </div>
+
       {/* Page Title & Mission Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>

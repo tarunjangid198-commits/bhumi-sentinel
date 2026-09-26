@@ -22,8 +22,10 @@ import {
   FileText,
   Star,
   ExternalLink,
+  Globe,
 } from 'lucide-react';
 import { Role, User } from '../types';
+import { GovtInteroperabilityHub } from '../components/admin/GovtInteroperabilityHub';
 
 export const OfficersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -97,18 +99,20 @@ export const OfficersPage: React.FC = () => {
     });
   };
 
-  // Filtered Users
-  const filteredUsers = allUsers.filter((user) => {
+  // Filtered Users with defensive checks
+  const safeUsers = Array.isArray(allUsers) ? allUsers : [];
+  const filteredUsers = safeUsers.filter((user) => {
+    if (!user) return false;
     if (filterRole !== 'ALL' && user.role !== filterRole) return false;
     if (filterDistrict !== 'ALL' && user.district !== filterDistrict) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchName = user.name.toLowerCase().includes(q);
-      const matchRole = user.role.toLowerCase().includes(q);
-      const matchDept = user.department.toLowerCase().includes(q);
-      const matchDist = (user.district || '').toLowerCase().includes(q);
-      const matchEmp = (user.employeeId || '').toLowerCase().includes(q);
-      if (!matchName && !matchRole && !matchDept && !matchDist && !matchEmp) return false;
+      const matchName = typeof user.name === 'string' && user.name.toLowerCase().includes(q);
+      const matchRole = typeof user.role === 'string' && user.role.toLowerCase().includes(q);
+      const matchDept = typeof user.department === 'string' && user.department.toLowerCase().includes(q);
+      const matchEmail = typeof user.email === 'string' && user.email.toLowerCase().includes(q);
+      const matchDistrict = typeof user.district === 'string' && user.district.toLowerCase().includes(q);
+      return matchName || matchRole || matchDept || matchEmail || matchDistrict;
     }
     return true;
   });
@@ -133,11 +137,22 @@ export const OfficersPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Action Button: Onboard New Officer */}
-        <div className="flex items-center space-x-2">
+        {/* Action Buttons: Gateway & Onboard New Officer */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              const el = document.getElementById('govt-interoperability-hub');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center space-x-2 shrink-0 cursor-pointer"
+          >
+            <Globe className="w-4 h-4 text-emerald-600" />
+            <span>Govt Web & App Gateway</span>
+          </button>
+
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center space-x-2 shrink-0"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 flex items-center space-x-2 shrink-0 cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>+ Add New Officer</span>
@@ -658,6 +673,10 @@ export const OfficersPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Government Web & App Interoperability Gateway Section */}
+      <div id="govt-interoperability-hub" className="pt-4">
+        <GovtInteroperabilityHub />
+      </div>
     </div>
   );
 };

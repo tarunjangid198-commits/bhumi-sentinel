@@ -10,21 +10,29 @@ export const FileMovementPage: React.FC = () => {
   const [filterDept, setFilterDept] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
 
-  const filteredFiles = files.filter((f) => {
+  const safeFiles = Array.isArray(files) ? files : [];
+
+  const filteredFiles = safeFiles.filter((f) => {
+    if (!f) return false;
     if (filterDept !== 'ALL' && f.currentDepartment !== filterDept) return false;
     if (filterStatus !== 'ALL' && f.status !== filterStatus) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      return (
-        f.fileId.toLowerCase().includes(q) ||
-        f.parcelId.toLowerCase().includes(q) ||
-        f.currentOfficer.toLowerCase().includes(q)
-      );
+      const matchFileId = typeof f.fileId === 'string' && f.fileId.toLowerCase().includes(q);
+      const matchParcelId = typeof f.parcelId === 'string' && f.parcelId.toLowerCase().includes(q);
+      const matchOfficer = typeof f.currentOfficer === 'string' && f.currentOfficer.toLowerCase().includes(q);
+      return matchFileId || matchParcelId || matchOfficer;
     }
     return true;
   });
 
-  const depts = Array.from(new Set(files.map((f) => f.currentDepartment))).sort();
+  const depts = Array.from(
+    new Set(
+      safeFiles
+        .map((f) => f?.currentDepartment)
+        .filter((d): d is string => typeof d === 'string' && Boolean(d.trim()))
+    )
+  ).sort();
 
   return (
     <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">

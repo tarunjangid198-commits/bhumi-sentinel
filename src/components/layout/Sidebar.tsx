@@ -20,31 +20,52 @@ import {
   Coins,
   QrCode,
   Smartphone,
+  X,
+  Award,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { MobileScannerModal } from '../common/MobileScannerModal';
 
 interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  desktopOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  mobileOpen,
+  setMobileOpen,
+  desktopOpen = true,
+  onClose,
+}) => {
   const navigate = useNavigate();
   const { currentUser, files, logout } = useApp();
-  const [showScanner, setShowScanner] = useState(false);
 
-  // Incoming files count for the current officer
-  const incomingCount = files.filter(
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setMobileOpen(false);
+    }
+  };
+
+  // Incoming files count for the current officer with defensive null-safety
+  const roleName = (currentUser?.role || '').toLowerCase().replace(' officer', '').trim();
+
+  const safeFiles = Array.isArray(files) ? files : [];
+
+  const incomingCount = safeFiles.filter(
     (f) =>
-      (f.status === 'SENT' || f.status === 'RECEIVED') &&
-      f.currentOfficer.toLowerCase().includes(currentUser.role.toLowerCase().replace(' officer', ''))
+      Boolean(f && (f.status === 'SENT' || f.status === 'RECEIVED')) &&
+      typeof f.currentOfficer === 'string' &&
+      f.currentOfficer.toLowerCase().includes(roleName)
   ).length;
 
-  const returnedCount = files.filter(
+  const returnedCount = safeFiles.filter(
     (f) =>
-      f.status === 'RETURNED' &&
-      f.currentOfficer.toLowerCase().includes(currentUser.role.toLowerCase().replace(' officer', ''))
+      Boolean(f && f.status === 'RETURNED') &&
+      typeof f.currentOfficer === 'string' &&
+      f.currentOfficer.toLowerCase().includes(roleName)
   ).length;
 
   const navItems = [
@@ -71,6 +92,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
     { name: 'Scenario Simulator', path: '/simulator', icon: Sliders },
     { name: 'AI Copilot', path: '/copilot', icon: BrainCircuit, badge: 'Intelligence', badgeColor: 'bg-indigo-600 text-white' },
     { name: 'Projects', path: '/projects', icon: FolderGit2 },
+    {
+      name: 'Completed Projects',
+      path: '/completed-projects',
+      icon: Award,
+      badge: 'Archive',
+      badgeColor: 'bg-emerald-600 text-white',
+    },
     { name: 'Officers Directory', path: '/officers', icon: Users },
     { name: 'Reports & Export', path: '/reports', icon: FileText },
     { name: 'Audit Trail', path: '/audit', icon: History },
@@ -87,25 +115,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-slate-900 text-slate-200 flex flex-col transition-all duration-300 ease-in-out shadow-2xl ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        } ${desktopOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}`}
       >
-        {/* Brand Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
+        {/* Brand Header with Visible Close / Collapse Button */}
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20 shrink-0">
               <Shield className="w-6 h-6 text-amber-300" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold tracking-wider text-base text-white">BHUMI-SENTINEL</span>
+                <span className="font-extrabold tracking-wider text-base text-white truncate">BHUMI-SENTINEL</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium tracking-tight leading-tight">
-                Land Acquisition Risk & Intelligence
+              <p className="text-[10px] text-slate-400 font-medium tracking-tight leading-tight truncate">
+                Land Acquisition Risk & Intel
               </p>
             </div>
           </div>
+
+          {/* Clear, visible close (✕) / collapse toggle button */}
+          <button
+            onClick={handleClose}
+            className="p-1.5 sm:p-2 rounded-xl text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700/90 border border-slate-700/80 transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0 group focus:outline-hidden focus:ring-2 focus:ring-blue-500/40"
+            title="Close / Minimize Sidebar (View Dashboard Full Width)"
+            aria-label="Close sidebar"
+          >
+            <X className="w-5 h-5 text-slate-300 group-hover:text-white group-hover:scale-110 transition-transform" />
+          </button>
         </div>
 
         {/* Tagline micro banner */}
@@ -148,29 +186,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
           })}
         </div>
 
-        {/* Mobile / Expo Scanner Quick Action Card */}
-        <div className="px-4 py-2 border-t border-slate-800">
-          <button
-            onClick={() => setShowScanner(true)}
-            className="w-full p-2.5 bg-gradient-to-r from-emerald-950/70 via-slate-900 to-slate-900 border border-emerald-500/40 hover:border-emerald-400 rounded-xl flex items-center justify-between text-left transition-all group shadow-inner"
-          >
-            <div className="flex items-center space-x-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 group-hover:scale-105 transition-transform">
-                <QrCode className="w-4 h-4" />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-bold text-emerald-300 group-hover:text-emerald-200">
-                  Mobile / Expo QR
-                </p>
-                <p className="text-[10px] text-slate-400 truncate">Scan to launch on phone</p>
-              </div>
-            </div>
-            <span className="text-[9px] bg-emerald-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded shrink-0">
-              SCAN
-            </span>
-          </button>
-        </div>
-
         {/* Current Officer / Session footer */}
         <div className="p-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between gap-2">
           <div className="flex items-center space-x-2.5 min-w-0">
@@ -192,19 +207,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               navigate('/logout');
             }}
             title="Log Out of Officer Session"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800/40 transition-all shrink-0"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 border border-transparent hover:border-rose-800/40 transition-all shrink-0 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>
         </div>
       </aside>
-
-      {/* Mobile Scanner Modal from Sidebar */}
-      <MobileScannerModal
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-        defaultTab="expo"
-      />
     </>
   );
 };

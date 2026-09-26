@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
   Bell,
@@ -11,21 +11,51 @@ import {
   ChevronDown,
   UserCheck,
   ShieldAlert,
-  QrCode,
-  Smartphone,
   LogOut,
   UserPlus,
+  Shield,
+  ArrowLeft,
+  Home,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Role } from '../../types';
-import { MobileScannerModal } from '../common/MobileScannerModal';
+import { SecuritySettingsModal } from '../security/SecuritySettingsModal';
 
 interface HeaderProps {
   setMobileOpen: (open: boolean) => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
+export const Header: React.FC<HeaderProps> = ({
+  setMobileOpen,
+  sidebarOpen = true,
+  onToggleSidebar,
+}) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard';
+
+  const getPageTitle = (path: string) => {
+    if (path === '/' || path === '/dashboard') return 'Command Center';
+    if (path.startsWith('/map')) return 'Acquisition Map';
+    if (path.startsWith('/land-rates')) return 'District Land Rates';
+    if (path === '/cases') return 'Land Cases';
+    if (path.startsWith('/cases/')) return 'Case Details';
+    if (path === '/portal') return 'Officer Portal';
+    if (path === '/movement' || path === '/files') return 'File Movement';
+    if (path === '/tasks') return 'My Tasks';
+    if (path === '/bottlenecks') return 'Risk & Bottlenecks';
+    if (path === '/simulator') return 'Scenario Simulator';
+    if (path === '/copilot') return 'AI Copilot';
+    if (path === '/projects') return 'Projects';
+    if (path === '/completed-projects') return 'Completed Projects Archive';
+    if (path === '/officers') return 'Officers Directory';
+    if (path === '/reports') return 'Reports & Export';
+    if (path === '/audit') return 'Audit Trail';
+    return 'Portal';
+  };
+
   const {
     currentUser,
     switchUser,
@@ -43,8 +73,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const [showScannerModal, setShowScannerModal] = useState(false);
-  const [scannerDefaultTab, setScannerDefaultTab] = useState<'expo' | 'camera'>('expo');
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('ALL');
 
   const searchRef = useRef<HTMLDivElement>(null);
@@ -68,21 +97,24 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter parcels & files based on search
+  // Filter parcels & files based on search with safe string checks
+  const safeParcels = Array.isArray(parcels) ? parcels : [];
   const filteredParcels = searchQuery.trim()
-    ? parcels
-        .filter(
-          (p) =>
-            p.parcelId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.khasraNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.village.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.project.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+    ? safeParcels
+        .filter((p) => {
+          if (!p) return false;
+          const query = searchQuery.toLowerCase();
+          const matchParcelId = typeof p.parcelId === 'string' && p.parcelId.toLowerCase().includes(query);
+          const matchKhasra = typeof p.khasraNumber === 'string' && p.khasraNumber.toLowerCase().includes(query);
+          const matchVillage = typeof p.village === 'string' && p.village.toLowerCase().includes(query);
+          const matchDistrict = typeof p.district === 'string' && p.district.toLowerCase().includes(query);
+          const matchProject = typeof p.project === 'string' && p.project.toLowerCase().includes(query);
+          return matchParcelId || matchKhasra || matchVillage || matchDistrict || matchProject;
+        })
         .slice(0, 6)
     : [];
 
-  const unreadNotifs = notifications.filter((n) => !n.read);
+  const unreadNotifs = (notifications || []).filter((n) => Boolean(n && !n.read));
 
   const handleRoleSelect = (roleName: Role) => {
     switchUser(roleName);
@@ -92,15 +124,66 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 lg:px-8 py-3 flex items-center justify-between shadow-xs">
-      <div className="flex items-center space-x-3 flex-1 max-w-2xl">
-        {/* Mobile menu button */}
+      <div className="flex items-center space-x-2.5 flex-1 max-w-3xl">
+        {/* Navigation Sidebar Toggle / Menu button */}
         <button
-          onClick={() => setMobileOpen(true)}
-          className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
-          aria-label="Open sidebar"
+          onClick={() => {
+            if (onToggleSidebar) {
+              onToggleSidebar();
+            } else {
+              setMobileOpen(true);
+            }
+          }}
+          className={`p-2 rounded-xl text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 border border-slate-200 transition-all cursor-pointer shadow-2xs shrink-0 ${
+            !sidebarOpen
+              ? 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 ring-2 ring-blue-500/20'
+              : 'lg:hidden'
+          }`}
+          aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+          title={sidebarOpen ? 'Close Navigation Sidebar' : 'Open Navigation Sidebar (Show Menu)'}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className={`w-5 h-5 ${!sidebarOpen ? 'text-blue-600' : 'text-slate-700'}`} />
+          <span className="text-xs font-bold hidden sm:inline">
+            {!sidebarOpen ? 'Expand Menu' : 'Menu'}
+          </span>
         </button>
+
+        {/* Back Button (Prominent when on any page) */}
+        {!isDashboard ? (
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/dashboard');
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 hover:text-blue-900 rounded-lg text-xs font-bold border border-blue-200 transition-all cursor-pointer shadow-2xs shrink-0"
+            title="Go to previous page"
+          >
+            <ArrowLeft className="w-4 h-4 text-blue-600" />
+            <span className="font-bold">Back</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-bold border border-slate-200 shrink-0"
+            title="Command Center Home"
+          >
+            <Home className="w-4 h-4 text-blue-600" />
+            <span className="font-bold text-slate-900">Command Center</span>
+          </button>
+        )}
+
+        {/* Breadcrumb Title Indicator */}
+        {!isDashboard && (
+          <div className="hidden md:flex items-center text-xs font-semibold text-slate-700 shrink-0">
+            <span className="text-slate-400 mx-1">/</span>
+            <span className="font-extrabold text-slate-900 truncate max-w-[170px] bg-slate-100 px-2 py-0.5 rounded">
+              {getPageTitle(location.pathname)}
+            </span>
+          </div>
+        )}
 
         {/* Global Search Bar */}
         <div ref={searchRef} className="relative flex-1">
@@ -278,19 +361,6 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
           )}
         </div>
 
-        {/* Mobile / Expo Go QR Scanner Button */}
-        <button
-          onClick={() => {
-            setScannerDefaultTab('expo');
-            setShowScannerModal(true);
-          }}
-          className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-2xs"
-          title="Open on Mobile / Expo Go or Scan Cadastral QR"
-        >
-          <QrCode className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="hidden md:inline">Mobile / Expo QR</span>
-        </button>
-
         {/* Notifications Popover */}
         <div ref={notifRef} className="relative">
           <button
@@ -359,9 +429,19 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
             }
           }}
           title="Reset to fresh demo state"
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
+        </button>
+
+        {/* Security & Access Center button */}
+        <button
+          onClick={() => setShowSecurityModal(true)}
+          title="Officer Security, 2FA & Access Center"
+          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative cursor-pointer"
+        >
+          <Shield className="w-4 h-4 text-emerald-600" />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
         </button>
 
         {/* Quick Sign Out button */}
@@ -371,17 +451,16 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
             navigate('/logout');
           }}
           title="Sign Out / Log Out"
-          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
         >
           <LogOut className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Mobile & Cadastral Scanner Modal */}
-      <MobileScannerModal
-        isOpen={showScannerModal}
-        onClose={() => setShowScannerModal(false)}
-        defaultTab={scannerDefaultTab}
+      {/* Security & Access Center Modal */}
+      <SecuritySettingsModal
+        isOpen={showSecurityModal}
+        onClose={() => setShowSecurityModal(false)}
       />
     </header>
   );

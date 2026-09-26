@@ -34,52 +34,59 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { parcels, projects, files } = useApp();
 
-  // Dynamic calculations from dataset
-  const totalProjects = projects.length;
-  const totalParcels = parcels.length;
-  const onTrackCount = parcels.filter(
-    (p) => (p.status === 'IN_PROGRESS' || p.status === 'ACQUIRED') && p.riskLevel === 'LOW' && p.delayDays === 0
+  // Dynamic calculations from dataset with full null-safety
+  const safeParcels = Array.isArray(parcels) ? parcels : [];
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const totalProjects = safeProjects.length;
+  const totalParcels = safeParcels.length;
+
+  const onTrackCount = safeParcels.filter(
+    (p) => Boolean(p && (p.status === 'IN_PROGRESS' || p.status === 'ACQUIRED') && p.riskLevel === 'LOW' && (p.delayDays ?? 0) === 0)
   ).length;
-  const atRiskCount = parcels.filter((p) => p.riskLevel === 'HIGH' || p.riskLevel === 'MEDIUM').length;
-  const delayedCount = parcels.filter((p) => p.delayDays > 0 || p.status === 'DELAYED').length;
-  const disputedCount = parcels.filter((p) => p.status === 'DISPUTED').length;
-  const compensationPendingCount = parcels.filter(
-    (p) => p.currentStage === 'Compensation Approval' || p.currentStage === 'Payment'
+  const atRiskCount = safeParcels.filter((p) => Boolean(p && (p.riskLevel === 'HIGH' || p.riskLevel === 'MEDIUM'))).length;
+  const delayedCount = safeParcels.filter((p) => Boolean(p && ((p.delayDays && p.delayDays > 0) || p.status === 'DELAYED'))).length;
+  const disputedCount = safeParcels.filter((p) => Boolean(p && p.status === 'DISPUTED')).length;
+  const compensationPendingCount = safeParcels.filter(
+    (p) => Boolean(p && (p.currentStage === 'Compensation Approval' || p.currentStage === 'Payment'))
   ).length;
-  const handoverPendingCount = parcels.filter(
-    (p) => p.currentStage === 'Acquisition' || p.currentStage === 'Handover'
+  const handoverPendingCount = safeParcels.filter(
+    (p) => Boolean(p && (p.currentStage === 'Acquisition' || p.currentStage === 'Handover'))
   ).length;
 
   // Chart data: Stage-wise pending cases
   const stageCounts: Record<string, number> = {};
-  parcels.forEach((p) => {
-    if (p.status !== 'ACQUIRED') {
-      stageCounts[p.currentStage] = (stageCounts[p.currentStage] || 0) + 1;
+  safeParcels.forEach((p) => {
+    if (p && p.status !== 'ACQUIRED') {
+      const stageKey = p.currentStage || 'Pending Review';
+      stageCounts[stageKey] = (stageCounts[stageKey] || 0) + 1;
     }
   });
 
   const stageChartData = Object.keys(stageCounts).map((stage) => ({
-    name: stage.length > 14 ? stage.slice(0, 12) + '..' : stage,
+    name: stage && stage.length > 14 ? stage.slice(0, 12) + '..' : (stage || 'Stage'),
     fullName: stage,
     count: stageCounts[stage],
   }));
 
   // Chart data: District bottleneck chart
   const districtCounts: Record<string, { delayed: number; total: number }> = {};
-  parcels.forEach((p) => {
-    if (!districtCounts[p.district]) {
-      districtCounts[p.district] = { delayed: 0, total: 0 };
-    }
-    districtCounts[p.district].total += 1;
-    if (p.delayDays > 0 || p.riskLevel === 'HIGH') {
-      districtCounts[p.district].delayed += 1;
+  safeParcels.forEach((p) => {
+    if (p) {
+      const distKey = p.district || 'General';
+      if (!districtCounts[distKey]) {
+        districtCounts[distKey] = { delayed: 0, total: 0 };
+      }
+      districtCounts[distKey].total += 1;
+      if ((p.delayDays && p.delayDays > 0) || p.riskLevel === 'HIGH') {
+        districtCounts[distKey].delayed += 1;
+      }
     }
   });
 
   const districtChartData = Object.keys(districtCounts).map((dist) => ({
     district: dist,
     delayed: districtCounts[dist].delayed,
-    onTrack: districtCounts[dist].total - districtCounts[dist].delayed,
+    onTrack: Math.max(0, districtCounts[dist].total - districtCounts[dist].delayed),
   }));
 
   // Status pie chart

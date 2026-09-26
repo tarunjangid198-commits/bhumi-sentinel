@@ -285,26 +285,90 @@ export const STAGE_NAMES: StageName[] = [
   'Handover',
 ];
 
-// Helper to generate 11 stages
+// Helper to generate 11 stages with project and corridor-aware officer assignments
 export function generate11Stages(
   completedCount: number,
   currentStageIdx: number,
   isDelayed: boolean,
   delayDays: number = 0,
-  delayReason: string = ''
+  delayReason: string = '',
+  projectMeta?: { code?: string; name?: string; district?: string }
 ) {
+  const prjCode = projectMeta?.code || '';
+  const dist = projectMeta?.district || 'Jaipur';
+
+  // 1. Project Authority (Stage 11 - Handover)
+  let projAuthority = 'Col. Sanjeev Nair (Project Authority)';
+  let projDept = 'NHAI Project Office';
+
+  if (prjCode.includes('WDFC') || prjCode.includes('DFCCIL')) {
+    projAuthority = 'Rajesh Aggarwal (Chief Project Manager, DFCCIL)';
+    projDept = 'DFCCIL Western Corridor Unit / Railways';
+  } else if (prjCode.includes('JMRC') || prjCode.includes('M2')) {
+    projAuthority = 'Sunil Godha (General Manager Land & Civil, JMRC)';
+    projDept = 'JMRC Land Cell / Metro Directorate';
+  } else if (prjCode.includes('KOTA') || prjCode.includes('DVE')) {
+    projAuthority = 'D.K. Chaturvedi (Project Director, NHAI Kota)';
+    projDept = 'NHAI Corridor PIU Kota';
+  } else if (prjCode.includes('SLR') || prjCode.includes('MNRE')) {
+    projAuthority = 'Dr. Mahendra Bishnoi (Nodal Officer Renewable Energy, RRECL)';
+    projDept = 'RRECL Mega Solar Cell / MNRE';
+  } else if (prjCode.includes('RIICO') || prjCode.includes('LOG')) {
+    projAuthority = 'Harish Chandra Yadav (Senior Regional Manager, RIICO)';
+    projDept = 'RIICO Industrial Estate Authority';
+  }
+
+  // 2. District Competent Land Acquisition Authority (Stages 3, 4, 5, 10)
+  let distOfficer = 'Ashok Kumar Meena (District Officer)';
+  let distDept = 'District Revenue Office';
+
+  if (dist === 'Kota' || dist === 'Bundi') {
+    distOfficer = 'Smt. Ritu Jain (SDM & Competent LA Authority)';
+    distDept = 'District Revenue Collectorate, Kota';
+  } else if (dist === 'Jodhpur' || dist === 'Bikaner') {
+    distOfficer = 'Babu Lal Bishnoi (SDM & Land Acquisition Officer)';
+    distDept = 'District Revenue Collectorate, Bikaner';
+  } else if (dist === 'Alwar') {
+    distOfficer = 'Rajendra Sharma (ADM & Competent Authority Land Acquisition)';
+    distDept = 'District Revenue Office, Alwar';
+  } else if (dist === 'Ajmer') {
+    distOfficer = 'Girish Pareek (SDM & Land Acquisition Officer)';
+    distDept = 'District Revenue Office, Ajmer';
+  } else if (dist === 'Dausa') {
+    distOfficer = 'Mahendra Meena (SDM & Land Acquisition Officer)';
+    distDept = 'District Revenue Office, Dausa';
+  }
+
+  // 3. Cadastral Survey & Demarcation (Stages 1, 2)
+  let surveyOfficer = 'Vikram Singh (Survey Officer)';
+  let surveyDept = 'Directorate of Land Records';
+
+  if (dist === 'Kota' || dist === 'Bundi') {
+    surveyOfficer = 'Mohan Lal Sharma (Senior Cadastral Surveyor)';
+    surveyDept = 'Directorate of Land Records, Kota Circle';
+  } else if (dist === 'Jodhpur' || dist === 'Bikaner') {
+    surveyOfficer = 'Narpat Singh Rathore (DGPS Survey Inspector)';
+    surveyDept = 'Directorate of Land Records, Western Zone';
+  } else if (dist === 'Alwar') {
+    surveyOfficer = 'Dinesh Chand Meena (Survey Officer)';
+    surveyDept = 'Directorate of Land Records, NCR Circle';
+  } else if (dist === 'Ajmer') {
+    surveyOfficer = 'Subhash Verma (Cadastral Officer)';
+    surveyDept = 'Directorate of Land Records, Ajmer Circle';
+  }
+
   const officersMap: Record<number, { officer: string; dept: string }> = {
-    1: { officer: 'Vikram Singh (Survey Officer)', dept: 'Directorate of Land Records' },
-    2: { officer: 'Vikram Singh (Survey Officer)', dept: 'Directorate of Land Records' },
-    3: { officer: 'Ashok Kumar Meena (District Officer)', dept: 'District Revenue Office' },
-    4: { officer: 'Ashok Kumar Meena (District Officer)', dept: 'District Revenue Office' },
-    5: { officer: 'Ashok Kumar Meena (District Officer)', dept: 'District Revenue Office' },
+    1: { officer: surveyOfficer, dept: surveyDept },
+    2: { officer: surveyOfficer, dept: surveyDept },
+    3: { officer: distOfficer, dept: distDept },
+    4: { officer: distOfficer, dept: distDept },
+    5: { officer: distOfficer, dept: distDept },
     6: { officer: 'Priyanka Rathore (Legal Officer)', dept: 'Revenue Legal Cell' },
     7: { officer: 'R.K. Sharma (Finance Officer)', dept: 'District Finance' },
     8: { officer: 'R.K. Sharma (Finance Officer)', dept: 'District Finance' },
     9: { officer: 'R.K. Sharma (Finance Officer)', dept: 'District Treasury' },
-    10: { officer: 'Ashok Kumar Meena (District Officer)', dept: 'District Revenue Office' },
-    11: { officer: 'Col. Sanjeev Nair (Project Authority)', dept: 'NHAI Project Office' },
+    10: { officer: distOfficer, dept: distDept },
+    11: { officer: projAuthority, dept: projDept },
   };
 
   return STAGE_NAMES.map((name, index) => {
@@ -664,7 +728,11 @@ for (let i = 7; i <= 105; i++) {
 
   const currentStageIdx = Math.min(10, completedCount);
   const currentStageName = STAGE_NAMES[currentStageIdx];
-  const stages = generate11Stages(completedCount, currentStageIdx, isDelayed, delayDays, delayReason);
+  const stages = generate11Stages(completedCount, currentStageIdx, isDelayed, delayDays, delayReason, {
+    code: prj.code,
+    name: prj.name,
+    district: dist,
+  });
 
   const latOffset = ((i % 10) - 5) * 0.024;
   const lngOffset = ((Math.floor(i / 10) % 10) - 5) * 0.028;

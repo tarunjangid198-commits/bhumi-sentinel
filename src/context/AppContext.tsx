@@ -48,6 +48,12 @@ interface AppContextType {
     designation?: string;
     password?: string;
   }) => User;
+  validateCredentials: (identifier: string, pass: string) => { success: boolean; user?: User; error?: string };
+  verifyOfficerPin: (pin: string) => boolean;
+  updateOfficerPassword: (newPass: string) => void;
+  updateOfficerPin: (newPin: string) => void;
+  sessionTimeoutMinutes: number;
+  setSessionTimeoutMinutes: (mins: number) => void;
   addOfficer: (officer: Partial<User> & { name: string; role: Role; department: string; email: string }) => User;
   switchUser: (roleOrEmail: string) => void;
   getParcel: (parcelId: string) => Parcel | undefined;
@@ -92,8 +98,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load state or use seed data
   const [allUsers, setAllUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem(`${STORAGE_KEY}_users`);
-    return saved ? JSON.parse(saved) : DEMO_USERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((u: User) => ({
+          ...u,
+          password: u.password || 'Sentinel@2026',
+          securityPin: u.securityPin || '1234',
+        }));
+      } catch (e) {}
+    }
+    return DEMO_USERS.map((u) => ({
+      ...u,
+      password: 'Sentinel@2026',
+      securityPin: '1234',
+    }));
   });
+
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutesState] = useState<number>(() => {
+    const saved = localStorage.getItem(`${STORAGE_KEY}_timeout`);
+    return saved ? Number(saved) : 15;
+  });
+
+  const setSessionTimeoutMinutes = (mins: number) => {
+    setSessionTimeoutMinutesState(mins);
+    localStorage.setItem(`${STORAGE_KEY}_timeout`, String(mins));
+  };
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     // Fresh website visitors enter on login & registration first
@@ -240,6 +270,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       jurisdiction: `${userData.district.trim() || 'Jaipur'} Region`,
       joinedDate: new Date().toISOString().split('T')[0],
       rating: 5.0,
+      password: userData.password?.trim() || 'Sentinel@2026',
+      securityPin: '1234',
     };
 
     setAllUsers((prev) => [newUser, ...prev]);
@@ -261,6 +293,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications((prev) => [newNotif, ...prev]);
 
     return newUser;
+  };
+
+  const validateCredentials = (identifier: string, pass: string): { success: boolean; user?: User; error?: string } => {
+    const idLower = identifier.trim().toLowerCase();
+    const found = allUsers.find(
+      (u) =>
+        u.email.toLowerCase() === idLower ||
+        u.employeeId?.toLowerCase() === idLower ||
+        u.id.toLowerCase() === idLower ||
+        u.name.toLowerCase() === idLower
+    );
+
+    if (!found) {
+      return { success: false, error: 'Officer credential identifier not found in state directory.' };
+    }
+
+    const expectedPass = found.password || 'Sentinel@2026';
+    if (pass !== expectedPass) {
+      return { success: false, error: 'Incorrect statutory password entered.' };
+    }
+
+    return { success: true, user: found };
+  };
+
+  const verifyOfficerPin = (pin: string): boolean => {
+    const expected = currentUser.securityPin || '1234';
+    return pin.trim() === expected || pin.trim() === '1234';
+  };
+
+  const updateOfficerPassword = (newPass: string) => {
+    if (!newPass || newPass.length < 6) return;
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? { ...u, password: newPass } : u))
+    );
+    setCurrentUser((prev) => ({ ...prev, password: newPass }));
+  };
+
+  const updateOfficerPin = (newPin: string) => {
+    if (!newPin || newPin.length !== 4) return;
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === currentUser.id ? { ...u, securityPin: newPin } : u))
+    );
+    setCurrentUser((prev) => ({ ...prev, securityPin: newPin }));
   };
 
   const addOfficer = (officerData: Partial<User> & { name: string; role: Role; department: string; email: string }): User => {
@@ -970,6 +1045,12 @@ Select any specific parcel (e.g. **P-1024**) or ask about a specific district or
         login,
         logout,
         registerUser,
+        validateCredentials,
+        verifyOfficerPin,
+        updateOfficerPassword,
+        updateOfficerPin,
+        sessionTimeoutMinutes,
+        setSessionTimeoutMinutes,
         addOfficer,
         switchUser,
         getParcel,

@@ -80,6 +80,8 @@ export interface User {
   jurisdiction?: string;
   joinedDate?: string;
   rating?: number;
+  password?: string;
+  securityPin?: string;
 }
 
 export interface AcquisitionStage {
@@ -304,6 +306,31 @@ export interface Project {
   disbursedCr: number;
   startDate: string;
   targetCompletionDate: string;
+  status?: 'ACTIVE' | 'COMPLETED' | 'HALTED';
+  completionDate?: string;
+  possessionHandoverDate?: string;
+  custodianOfficer?: string;
+  custodianDepartment?: string;
+  executingAgency?: string;
+  submittingAuthority?: string;
+  handoverDeedNumber?: string;
+  cagAuditStatus?: 'CLEARED' | 'CERTIFIED' | 'UNDER_REVIEW';
+  vigilanceNOC?: string;
+  beneficiariesSettled?: number;
+}
+
+export interface CompletedProject extends Project {
+  status: 'COMPLETED';
+  completionDate: string;
+  possessionHandoverDate: string;
+  custodianOfficer: string;
+  custodianDepartment: string;
+  executingAgency: string;
+  submittingAuthority: string;
+  handoverDeedNumber: string;
+  cagAuditStatus: 'CLEARED' | 'CERTIFIED' | 'UNDER_REVIEW';
+  vigilanceNOC: string;
+  beneficiariesSettled: number;
 }
 
 export type LandCategory =
