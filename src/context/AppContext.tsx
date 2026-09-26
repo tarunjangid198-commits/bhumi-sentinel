@@ -125,15 +125,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`${STORAGE_KEY}_timeout`, String(mins));
   };
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    // Fresh website visitors enter on login & registration first
-    const sessionAuth = sessionStorage.getItem(`${STORAGE_KEY}_session_auth`);
-    if (sessionAuth !== null) {
-      return JSON.parse(sessionAuth);
-    }
-    const saved = localStorage.getItem(`${STORAGE_KEY}_auth`);
-    return saved !== null ? JSON.parse(saved) : false;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   const [currentUser, setCurrentUser] = useState<User>(() => {
     const savedUser = localStorage.getItem(`${STORAGE_KEY}_current_user`);
@@ -182,7 +174,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [allUsers]);
 
   useEffect(() => {
-    localStorage.setItem(`${STORAGE_KEY}_auth`, JSON.stringify(isAuthenticated));
+    try {
+      sessionStorage.setItem(`${STORAGE_KEY}_session_auth`, String(isAuthenticated));
+    } catch {}
   }, [isAuthenticated]);
 
   useEffect(() => {

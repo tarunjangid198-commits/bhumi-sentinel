@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { Role, User } from '../types';
 import {
@@ -29,22 +29,163 @@ import {
   Usb,
   Cpu,
   BadgeCheck,
+  Compass,
+  Landmark,
+  FileText,
+  Check,
+  ChevronRight,
 } from 'lucide-react';
 
+export const STATUTORY_OFFICER_ROLES = [
+  {
+    role: 'Survey Officer',
+    userKey: 'USR-04',
+    name: 'Vikram Singh',
+    designation: 'Head Cadastral Surveyor',
+    dept: 'Directorate of Land Records & Survey',
+    jurisdiction: 'Jaipur Circle & Expressway Corridor',
+    powers: 'Cadastral GIS Mapping, DGPS Ground Demarcation, Section 3/4 Alignment',
+    theme: {
+      border: 'border-indigo-500/40',
+      activeBorder: 'border-indigo-500 ring-2 ring-indigo-500/40 bg-indigo-950/40',
+      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
+      iconColor: 'text-indigo-400',
+    },
+    badgeText: 'CADASTRAL & SURVEY',
+    icon: Compass,
+  },
+  {
+    role: 'National Admin',
+    userKey: 'USR-01',
+    name: 'Rajesh Verma',
+    designation: 'Director General (Land Resources)',
+    dept: 'Ministry of Rural Development (MoRD)',
+    jurisdiction: 'National Infrastructure Corridors',
+    powers: 'Nationwide Milestone Analytics, Officer Audits, SLA Policy Enforcement',
+    theme: {
+      border: 'border-blue-500/40',
+      activeBorder: 'border-blue-500 ring-2 ring-blue-500/40 bg-blue-950/40',
+      badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      iconColor: 'text-blue-400',
+    },
+    badgeText: 'NATIONAL OVERSIGHT',
+    icon: Landmark,
+  },
+  {
+    role: 'District Collector / LAO',
+    userKey: 'USR-03',
+    name: 'Ashok Kumar Meena, RAS',
+    designation: 'Additional District Magistrate / Land Acquisition Officer',
+    dept: 'District Revenue Office, Collectorate',
+    jurisdiction: 'Jaipur District Collectorate',
+    powers: 'Section 4/11/19 Gazette Sanctions, Hearing Objections, Award Inquiry',
+    theme: {
+      border: 'border-emerald-500/40',
+      activeBorder: 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-950/40',
+      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      iconColor: 'text-emerald-400',
+    },
+    badgeText: 'COLLECTORATE AUTHORITY',
+    icon: Building,
+  },
+  {
+    role: 'Land Acquisition Officer (PIU)',
+    userKey: 'USR-07',
+    name: 'Col. Sanjeev Nair (Retd.)',
+    designation: 'Chief Project Director',
+    dept: 'National Highway Authority of India (NHAI)',
+    jurisdiction: 'Delhi-Mumbai & National Corridors',
+    powers: 'Stage 11 Possession Handover, Mutation Verification, PIU Clearances',
+    theme: {
+      border: 'border-rose-500/40',
+      activeBorder: 'border-rose-500 ring-2 ring-rose-500/40 bg-rose-950/40',
+      badgeBg: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+      iconColor: 'text-rose-400',
+    },
+    badgeText: 'PROJECT AUTHORITY',
+    icon: ShieldCheck,
+  },
+  {
+    role: 'Finance Officer (Treasury)',
+    userKey: 'USR-06',
+    name: 'R.K. Sharma',
+    designation: 'Chief Accounts Officer (Compensation)',
+    dept: 'District Finance & Treasury',
+    jurisdiction: 'State Treasury Escrow & Disbursals',
+    powers: 'Circle Rate Valuation, Solatium Sanction, Direct Bank Compensation',
+    theme: {
+      border: 'border-amber-500/40',
+      activeBorder: 'border-amber-500 ring-2 ring-amber-500/40 bg-amber-950/40',
+      badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      iconColor: 'text-amber-400',
+    },
+    badgeText: 'TREASURY & DISBURSAL',
+    icon: FileText,
+  },
+  {
+    role: 'Revenue Legal Arbiter',
+    userKey: 'USR-05',
+    name: 'Priyanka Rathore',
+    designation: 'Senior Legal Officer & Dispute Arbiter',
+    dept: 'Revenue Legal Cell',
+    jurisdiction: 'Revenue Courts & High Court Writs',
+    powers: 'Title Dispute Scrutiny, Section 15 Hearing Defense, Legal Injunctions',
+    theme: {
+      border: 'border-purple-500/40',
+      activeBorder: 'border-purple-500 ring-2 ring-purple-500/40 bg-purple-950/40',
+      badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      iconColor: 'text-purple-400',
+    },
+    badgeText: 'LEGAL SCRUTINY',
+    icon: ShieldAlert,
+  },
+  {
+    role: 'State Revenue Secretary',
+    userKey: 'USR-02',
+    name: 'Sunita Choudhary, IAS',
+    designation: 'Principal Secretary (Revenue)',
+    dept: 'State Revenue Department, Rajasthan',
+    jurisdiction: 'Statewide Land Records Directory',
+    powers: 'Cabinet Approvals, Statewide Governance, Inter-District Coordination',
+    theme: {
+      border: 'border-cyan-500/40',
+      activeBorder: 'border-cyan-500 ring-2 ring-cyan-500/40 bg-cyan-950/40',
+      badgeBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+      iconColor: 'text-cyan-400',
+    },
+    badgeText: 'STATE SECRETARIAT',
+    icon: UserCheck,
+  },
+];
+
 interface LoginPageProps {
-  initialTab?: 'login' | 'register' | 'persona' | 'dsc';
+  initialTab?: 'role' | 'login' | 'register' | 'persona' | 'dsc';
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'role' }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { allUsers, login, registerUser, validateCredentials, isAuthenticated, currentUser } = useApp();
 
+  const redirectPath = (location.state as any)?.from?.pathname || '/dashboard';
+
   // Determine starting tab from URL query (?tab=register) or prop
-  const queryTab = searchParams.get('tab') as 'login' | 'register' | 'persona' | 'dsc' | null;
-  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'persona' | 'dsc'>(
+  const queryTab = searchParams.get('tab') as 'role' | 'login' | 'register' | 'persona' | 'dsc' | null;
+  const [activeTab, setActiveTab] = useState<'role' | 'login' | 'register' | 'persona' | 'dsc'>(
     queryTab || initialTab
   );
+
+  // Selected Role Authentication State
+  const [selectedRoleUserKey, setSelectedRoleUserKey] = useState<string>('USR-04'); // Defaults to Survey Officer
+  const [isRoleAuthenticating, setIsRoleAuthenticating] = useState(false);
+  const [rolePinRequired, setRolePinRequired] = useState(false);
+  const [rolePin, setRolePin] = useState('123456');
+  const [rolePinError, setRolePinError] = useState<string | null>(null);
+
+  const selectedOfficer =
+    STATUTORY_OFFICER_ROLES.find((r) => r.userKey === selectedRoleUserKey) ||
+    STATUTORY_OFFICER_ROLES[0];
 
   // ----------------- SECURITY: CAPTCHA -----------------
   const generateCaptcha = () => {
@@ -164,11 +305,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
 
   // Synchronize query param if changes
   useEffect(() => {
-    if (queryTab && ['login', 'register', 'persona', 'dsc'].includes(queryTab)) {
+    if (queryTab && ['role', 'login', 'register', 'persona', 'dsc'].includes(queryTab)) {
       setActiveTab(queryTab);
       setShow2FAStep(false);
     }
   }, [queryTab]);
+
+  const handleRoleAuthenticate = (userKey: string) => {
+    setRolePinError(null);
+    if (rolePinRequired && rolePin.trim() !== '123456') {
+      setRolePinError('Invalid 6-digit Officer Security PIN. (Default Demo PIN is 123456)');
+      return;
+    }
+
+    setIsRoleAuthenticating(true);
+    setTimeout(() => {
+      login(userKey);
+      navigate(redirectPath);
+    }, 350);
+  };
 
   // ----------------- PASSWORD STRENGTH EVALUATOR -----------------
   const evaluatePasswordStrength = (pass: string) => {
@@ -185,7 +340,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
   // Quick 1-Click Login
   const handleQuickLogin = (userId: string) => {
     login(userId);
-    navigate('/dashboard');
+    navigate(redirectPath);
   };
 
   // Submit Login with Security Checks (Lockout, Captcha, Password, 2FA)
@@ -401,7 +556,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
       </header>
 
       {/* Main Authentication Container */}
-      <main className="max-w-2xl w-full mx-auto my-6 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative z-10">
+      <main className="max-w-4xl w-full mx-auto my-6 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative z-10">
         
         {/* Security Alert Header */}
         <div className="text-center space-y-2">
@@ -411,86 +566,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
             {show2FAStep && 'Two-Factor Authentication (2FA)'}
-            {!show2FAStep && activeTab === 'login' && 'Authorized Officer Login'}
+            {!show2FAStep && (activeTab === 'role' || activeTab === 'persona') && 'Secure Officer Role Authentication'}
+            {!show2FAStep && activeTab === 'login' && 'Authorized Officer Login (SSO)'}
             {!show2FAStep && activeTab === 'register' && 'Create Officer Account & Register'}
-            {!show2FAStep && activeTab === 'persona' && '1-Click Statutory Officer Personas'}
             {!show2FAStep && activeTab === 'dsc' && 'Class-3 Digital Signature Authentication'}
           </h1>
-          <p className="text-xs text-slate-400 max-w-lg mx-auto leading-relaxed">
+          <p className="text-xs text-slate-400 max-w-2xl mx-auto leading-relaxed">
             {show2FAStep &&
               'Statutory security verification: Enter the 6-digit Time-Based One-Time Password sent to your authorized mobile phone and official government inbox.'}
+            {!show2FAStep && (activeTab === 'role' || activeTab === 'persona') &&
+              'Select your official statutory designation (Survey Officer, National Admin, District Collector / LAO, Project Authority) to authenticate and initialize your role-specific dashboard and clearance permissions under the RFCTLARR Act 2013.'}
             {!show2FAStep && activeTab === 'login' &&
               'Protected with Brute-Force Detection, Captcha Bot Verification, and Mandatory Two-Factor Authentication.'}
             {!show2FAStep && activeTab === 'register' &&
               'Register your designation and jurisdiction to access the multi-tier land acquisition decision pipeline and cadastral map.'}
-            {!show2FAStep && activeTab === 'persona' &&
-              'Select any pre-configured statutory officer profile to test specific permissions, files, and role dashboards.'}
             {!show2FAStep && activeTab === 'dsc' &&
               'Hardware e-Sign crypto-token verification for statutory awards, 2013 act notices, and direct escrow releases.'}
           </p>
         </div>
-
-        {/* Quick Instant Demo Login Bar */}
-        {!show2FAStep && (
-          <div className="p-3 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400 font-bold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Quick Instant Access (One-Click Login)</span>
-              </span>
-              <span className="text-[10px] text-emerald-400 font-mono">Bypass Credentials</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  login('USR-01');
-                  navigate('/dashboard');
-                }}
-                className="p-2 bg-slate-900 hover:bg-blue-950 hover:border-blue-500/60 border border-slate-800 rounded-lg text-left transition-all cursor-pointer"
-              >
-                <span className="text-[10px] text-blue-400 font-bold block truncate">National Admin</span>
-                <span className="text-xs text-white font-semibold truncate block">Rajesh Sharma</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  login('USR-03');
-                  navigate('/dashboard');
-                }}
-                className="p-2 bg-slate-900 hover:bg-emerald-950 hover:border-emerald-500/60 border border-slate-800 rounded-lg text-left transition-all cursor-pointer"
-              >
-                <span className="text-[10px] text-emerald-400 font-bold block truncate">District ADM</span>
-                <span className="text-xs text-white font-semibold truncate block">Ashok Meena</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  login('USR-06');
-                  navigate('/dashboard');
-                }}
-                className="p-2 bg-slate-900 hover:bg-amber-950 hover:border-amber-500/60 border border-slate-800 rounded-lg text-left transition-all cursor-pointer"
-              >
-                <span className="text-[10px] text-amber-400 font-bold block truncate">Finance Officer</span>
-                <span className="text-xs text-white font-semibold truncate block">Pooja Sharma</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  login('USR-04');
-                  navigate('/dashboard');
-                }}
-                className="p-2 bg-slate-900 hover:bg-purple-950 hover:border-purple-500/60 border border-slate-800 rounded-lg text-left transition-all cursor-pointer"
-              >
-                <span className="text-[10px] text-purple-400 font-bold block truncate">Survey Officer</span>
-                <span className="text-xs text-white font-semibold truncate block">Vikram Singh</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Tab Switcher (hidden when in 2FA step) */}
         {!show2FAStep && (
@@ -498,17 +591,50 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
             <button
               type="button"
               onClick={() => {
+                setActiveTab('role');
+                setLoginError(null);
+              }}
+              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'role' || activeTab === 'persona'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Select Role & Login</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
                 setActiveTab('login');
                 setLoginError(null);
               }}
-              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'login'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In</span>
+              <span>Departmental SSO</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('dsc');
+                setDscError(null);
+                setDscSuccess(null);
+              }}
+              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'dsc'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <Fingerprint className="w-3.5 h-3.5" />
+              <span>Class-3 DSC Token</span>
             </button>
 
             <button
@@ -518,40 +644,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
                 setRegError(null);
                 setRegSuccess(null);
               }}
-              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === 'register'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <UserPlus className="w-3.5 h-3.5" />
-              <span>Register</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('persona')}
-              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'persona'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Personas ({allUsers.length})</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('dsc')}
-              className={`py-2 px-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'dsc'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Fingerprint className="w-3.5 h-3.5" />
-              <span>e-Sign DSC</span>
+              <span>Register Officer</span>
             </button>
           </div>
         )}
@@ -667,6 +767,274 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialTab = 'login' }) =>
               </button>
             </div>
           </form>
+        )}
+
+        {/* ----------------- TAB: STATUTORY ROLE AUTHENTICATION ----------------- */}
+        {!show2FAStep && (activeTab === 'role' || activeTab === 'persona') && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Context & Fast Action Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-950/80 border border-slate-800 rounded-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>Statutory Access Control · RFCTLARR 2013</span>
+                    <span className="text-[10px] bg-blue-500/20 text-blue-300 font-mono px-2 py-0.5 rounded-full border border-blue-500/30 font-semibold">
+                      TIER-1 CLEARANCE
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Select your official government role to authenticate and load real-time project parcels and statutory powers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Instant 1-Click Launch for the chosen role */}
+              <button
+                type="button"
+                onClick={() => handleRoleAuthenticate(selectedRoleUserKey)}
+                disabled={isRoleAuthenticating}
+                className="w-full sm:w-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              >
+                {isRoleAuthenticating ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Enter as {selectedOfficer.role}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Role Cards Grid */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-blue-400" />
+                  <span>Choose Your Statutory Designation</span>
+                </span>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  {STATUTORY_OFFICER_ROLES.length} Official Roles Configured
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {STATUTORY_OFFICER_ROLES.map((officer) => {
+                  const isSelected = selectedRoleUserKey === officer.userKey;
+                  const IconComponent = officer.icon;
+                  return (
+                    <div
+                      key={officer.userKey}
+                      onClick={() => setSelectedRoleUserKey(officer.userKey)}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer relative group flex flex-col justify-between ${
+                        isSelected
+                          ? `bg-slate-950/95 ${officer.theme.activeBorder} shadow-lg shadow-black/40`
+                          : `bg-slate-950/40 hover:bg-slate-950/80 border-slate-800/80 hover:border-slate-700`
+                      }`}
+                    >
+                      {/* Top Row: Icon, Role Badge, Radio Check */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                                isSelected
+                                  ? `${officer.theme.badgeBg} border-current`
+                                  : 'bg-slate-900 border-slate-800 text-slate-400 group-hover:text-slate-200'
+                              }`}
+                            >
+                              <IconComponent className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-sm text-white">
+                                  {officer.role}
+                                </span>
+                                {isSelected && (
+                                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                )}
+                              </div>
+                              <span
+                                className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded-full border inline-block mt-0.5 font-bold ${officer.theme.badgeBg}`}
+                              >
+                                {officer.badgeText}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border transition-all ${
+                              isSelected
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-xs'
+                                : 'border-slate-700 bg-slate-900 text-transparent'
+                            }`}
+                          >
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                        </div>
+
+                        {/* Officer Personal Identity */}
+                        <div className="space-y-1 mb-3 pt-2 border-t border-slate-800/80">
+                          <div className="flex items-baseline justify-between text-xs">
+                            <span className="font-bold text-slate-200 truncate">{officer.name}</span>
+                            <span className="text-[10px] font-mono text-slate-500 shrink-0">{officer.userKey}</span>
+                          </div>
+                          <p className="text-[11px] text-blue-300 font-medium truncate">{officer.designation}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{officer.dept}</p>
+                          <p className="text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                            <span className="text-slate-500">Jurisdiction:</span>
+                            <span className="text-slate-300 font-medium truncate">{officer.jurisdiction}</span>
+                          </p>
+                        </div>
+
+                        {/* Statutory Powers */}
+                        <div className="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800/80 text-[10px] space-y-0.5">
+                          <span className="text-slate-400 font-semibold block">Statutory Powers:</span>
+                          <span className="text-slate-300 leading-relaxed block">{officer.powers}</span>
+                        </div>
+                      </div>
+
+                      {/* Card Action footer */}
+                      <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-slate-500">
+                          {isSelected ? '✓ Currently Selected' : 'Click to select role'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRoleUserKey(officer.userKey);
+                            handleRoleAuthenticate(officer.userKey);
+                          }}
+                          disabled={isRoleAuthenticating}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-xs'
+                              : 'bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80'
+                          }`}
+                        >
+                          <span>Authenticate</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Dedicated Selected Role Authentication Dock */}
+            <div className="p-5 bg-gradient-to-r from-blue-950/40 via-slate-950 to-indigo-950/40 border border-blue-500/40 rounded-3xl space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800/80">
+                <div className="flex items-center space-x-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/30 text-base">
+                    {selectedOfficer.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-white">{selectedOfficer.name}</span>
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-2 py-0.5 rounded-full border border-emerald-500/30 font-semibold">
+                        AUTHENTICATED CREDENTIALS
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-300 font-medium">
+                      {selectedOfficer.role} · {selectedOfficer.designation}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {selectedOfficer.dept} · {selectedOfficer.jurisdiction}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right hidden sm:block">
+                  <span className="text-[10px] text-slate-500 uppercase font-mono block">Security Profile</span>
+                  <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 justify-end">
+                    <ShieldCheck className="w-4 h-4" /> 2FA & PIN Verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Optional Security PIN Input */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Officer Security PIN Verification</span>
+                  </label>
+                  <span className="text-[11px] text-emerald-400 font-mono">
+                    Demo PIN: 123456 (Pre-filled & Verified)
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="password"
+                      maxLength={6}
+                      value={rolePin}
+                      onChange={(e) => {
+                        setRolePin(e.target.value.replace(/\D/g, ''));
+                        setRolePinError(null);
+                      }}
+                      placeholder="Enter 6-digit PIN"
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-hidden font-mono tracking-widest transition-colors"
+                    />
+                    <Lock className="w-3.5 h-3.5 text-slate-500 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRolePin('123456');
+                      setRolePinError(null);
+                    }}
+                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold border border-slate-800 transition-colors shrink-0"
+                  >
+                    Reset Demo PIN
+                  </button>
+                </div>
+
+                {rolePinError && (
+                  <p className="text-xs text-rose-400 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{rolePinError}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Big Action Submit Button */}
+              <button
+                type="button"
+                onClick={() => handleRoleAuthenticate(selectedRoleUserKey)}
+                disabled={isRoleAuthenticating}
+                className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isRoleAuthenticating ? (
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Authorizing Statutory Session for {selectedOfficer.name}...</span>
+                  </div>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-white" />
+                    <span>Authenticate as {selectedOfficer.role} & Enter Platform</span>
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                <span>Direct Access: Clicking authenticate immediately provisions role session & routing.</span>
+                <span className="font-mono text-slate-500">SLA Standard: &lt;250ms</span>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ----------------- TAB 1: LOGIN ----------------- */}

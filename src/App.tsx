@@ -125,7 +125,7 @@ export default function App() {
         <Router>
           <Routes>
             {/* Public Auth Routes: Login, Create Account & Register, Logout */}
-            <Route path="/login" element={<LoginPage initialTab="login" />} />
+            <Route path="/login" element={<LoginPage initialTab="role" />} />
             <Route path="/register" element={<LoginPage initialTab="register" />} />
             <Route path="/logout" element={<LogoutPage />} />
 

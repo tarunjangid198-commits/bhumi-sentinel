@@ -14,6 +14,7 @@ import {
   LogOut,
   UserPlus,
   Shield,
+  ShieldCheck,
   ArrowLeft,
   Home,
 } from 'lucide-react';
@@ -334,16 +335,17 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* Bottom Actions in Role Menu */}
-              <div className="p-2 bg-slate-900 border-t border-slate-750 flex items-center justify-between text-xs">
+              <div className="p-2 bg-slate-900 border-t border-slate-750 flex items-center justify-between text-xs gap-1.5">
                 <button
                   onClick={() => {
                     setShowRoleMenu(false);
-                    navigate('/register');
+                    logout();
+                    navigate('/login');
                   }}
-                  className="text-emerald-400 hover:text-emerald-300 hover:underline text-[11px] font-semibold flex items-center gap-1"
+                  className="text-blue-400 hover:text-blue-300 hover:underline text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
                 >
-                  <UserPlus className="w-3 h-3" />
-                  <span>Register Account</span>
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Role Login Screen</span>
                 </button>
                 <button
                   onClick={() => {
@@ -351,7 +353,7 @@ export const Header: React.FC<HeaderProps> = ({
                     logout();
                     navigate('/logout');
                   }}
-                  className="flex items-center gap-1 text-rose-400 hover:text-rose-300 text-[11px] font-bold"
+                  className="flex items-center gap-1 text-rose-400 hover:text-rose-300 text-[11px] font-bold cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>
